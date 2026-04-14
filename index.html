@@ -227,8 +227,10 @@
         padding: 10px; border: 1px solid #e5e7eb;
         vertical-align: top; line-height: 1.55;
     }
-    .chunks-table tr:nth-child(even) td { background: #f8fbff; }
+    .chunks-table tr.even-row td { background: #f8fbff; }
     .chunks-table tr:hover td { background: #eff6ff; }
+    .chunks-table tr.expanded-detail-row td { background: #f8f9fa !important; }
+    .chunks-table tr.expanded-detail-row:hover td { background: #f0f4f8 !important; }
 
     /* 列宽 */
     .chunks-table .col-num  { width: 36px; text-align: center; color: var(--gray); font-size: 12px; }
@@ -262,8 +264,20 @@
         padding: 10px; border: 1px solid #e5e7eb;
         vertical-align: top; line-height: 1.55;
     }
-    .vocab-table tr:nth-child(even) td { background: #f0fdf4; }
+    .vocab-table tr.even-row td { background: #f0fdf4; }
     .vocab-table tr:hover td { background: #ecfdf5; }
+    .vocab-table tr.expanded-detail-row td { background: #f8f9fa !important; }
+    .vocab-table tr.expanded-detail-row:hover td { background: #f0f4f8 !important; }
+    
+    /* 新增：用 class 统一控制隐藏态，避免逐元素操作 style */
+    .ref-reveal-col { display: none; }   /* 默认：操作列隐藏 */
+    .table-details-hidden .ref-hideable { display: none !important; }
+    .table-details-hidden .ref-reveal-col { display: table-cell !important; }
+    
+    /* 手机卡片模式下不需要工具栏 */
+    @media (max-width: 600px) {
+        .ref-toolbar { display: none !important; }
+    }
 
     .vocab-table .col-num   { width: 32px; text-align: center; color: var(--gray); font-size: 12px; }
     .vocab-table .col-word  { width: 16%; }
@@ -341,6 +355,32 @@
         background-repeat: no-repeat; background-position: 10px center;
     }
     .ref-search-bar input:focus { border-color: var(--primary-color); }
+    /* 隐藏/显示控制 */
+    .ref-toolbar {
+        padding: 6px 16px; background: white;
+        border-bottom: 1px solid var(--border-color);
+        display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+        position: sticky; top: 108px; z-index: 98;
+    }
+    @media (max-width: 500px) {
+        .ref-header { flex-wrap: wrap; }
+        .ref-header h2 { font-size: 13px; }
+        .ref-tab-btn { padding: 4px 8px; font-size: 12px; }
+        .ref-search-bar { top: 90px; }
+        .ref-toolbar { top: 136px; }
+    }
+    .ref-toolbar-label { font-size: 13px; color: var(--gray); margin-right: 4px; }
+    .btn-hide-details { background: var(--orange); }
+    .btn-hide-details:hover { background: var(--orange-hover); }
+    .btn-reset-table { background: var(--gray); }
+    .btn-reset-table:hover { background: #555; }
+    .row-reveal-btn {
+        display: none; padding: 3px 8px; font-size: 12px;
+        background: var(--teal); color: white; border: none;
+        border-radius: 4px; cursor: pointer; white-space: nowrap;
+    }
+    .row-reveal-btn:hover { background: var(--teal-hover); }
+    .ref-row-hidden .row-reveal-btn { display: inline-block; }
 
     /* Responsive tweaks */
     @media (min-width: 768px) { .study-actions-desktop { display: block; width: 100%; max-width: 600px; margin-top: 20px; } }
@@ -357,11 +397,6 @@
             box-shadow: 0 -2px 10px rgba(0,0,0,0.1); flex-direction: column; gap: 8px;
             max-width: 1000px; margin: 0 auto; border-top: 1px solid var(--border-color);
         }
-    }
-    @media (max-width: 500px) {
-        .ref-header { flex-wrap: wrap; }
-        .ref-header h2 { font-size: 13px; }
-        .ref-tab-btn { padding: 4px 8px; font-size: 12px; }
     }
 </style>
 
@@ -544,6 +579,11 @@ document.querySelector('.app-container').innerHTML = `
         </div>
         <div class="ref-search-bar">
             <input type="text" id="ref-search-input" placeholder="搜索语块或词汇...">
+        </div>
+        <div class="ref-toolbar" id="ref-toolbar">
+            <span class="ref-toolbar-label">操作：</span>
+            <button class="btn btn-hide-details" id="ref-hide-btn" style="padding:5px 12px;font-size:13px;">🙈 隐藏详情列</button>
+            <button class="btn btn-reset-table" id="ref-reset-btn" style="padding:5px 12px;font-size:13px;">↺ 重置表格</button>
         </div>
         <div class="ref-content-area" id="ref-content-area">
             <!-- 由JS动态渲染 -->
@@ -1135,20 +1175,22 @@ document.addEventListener('DOMContentLoaded', () => {
         tableHtml += '<table class="chunks-table"><thead><tr>';
         tableHtml += '<th class="col-num">#</th>';
         tableHtml += '<th class="col-chunk">语块</th>';
-        tableHtml += '<th class="col-sent">书中例句</th>';
-        tableHtml += '<th class="col-en">英文释义</th>';
-        tableHtml += '<th class="col-zh">中文释义</th>';
-        tableHtml += '<th class="col-life">生活化例句</th>';
+        tableHtml += '<th class="col-sent ref-hideable">书中例句</th>';
+        tableHtml += '<th class="col-en ref-hideable">英文释义</th>';
+        tableHtml += '<th class="col-zh ref-hideable">中文释义</th>';
+        tableHtml += '<th class="col-life ref-hideable">生活化例句</th>';
+        tableHtml += '<th class="ref-reveal-col" style="width:52px;"></th>';
         tableHtml += '</tr></thead><tbody>';
 
-        data.forEach(c => {
-            tableHtml += '<tr>';
+        data.forEach((c, index) => {
+            tableHtml += '<tr class="' + (index % 2 !== 0 ? 'even-row' : '') + '">';
             tableHtml += '<td class="col-num">' + escHtml(c.num) + '</td>';
             tableHtml += '<td><span class="chunk-term">' + c.chunk + '</span><button class="speak-btn" data-speak="' + c.chunkTxt.replace(/"/g, '&quot;') + '" title="点击发音">🔊</button></td>';
-            tableHtml += '<td class="chunk-cell-book">' + c.book + '</td>';
-            tableHtml += '<td class="chunk-cell-en">' + c.en + '</td>';
-            tableHtml += '<td class="chunk-cell-zh">' + c.zh + '</td>';
-            tableHtml += '<td class="chunk-cell-life">' + c.life + '</td>';
+            tableHtml += '<td class="chunk-cell-book ref-hideable">' + c.book + '</td>';
+            tableHtml += '<td class="chunk-cell-en ref-hideable">' + c.en + '</td>';
+            tableHtml += '<td class="chunk-cell-zh ref-hideable">' + c.zh + '</td>';
+            tableHtml += '<td class="chunk-cell-life ref-hideable">' + c.life + '</td>';
+            tableHtml += '<td class="ref-reveal-col"><button class="row-reveal-btn">显示</button></td>';
             tableHtml += '</tr>';
         });
         tableHtml += '</tbody></table>';
@@ -1193,21 +1235,23 @@ document.addEventListener('DOMContentLoaded', () => {
         tableHtml += '<th class="col-num">#</th>';
         tableHtml += '<th class="col-word">单词/短语</th>';
         tableHtml += '<th class="col-phon">音标</th>';
-        tableHtml += '<th class="col-mean">意思</th>';
-        tableHtml += '<th class="col-sent">例句</th>';
-        tableHtml += '<th class="col-trans">翻译</th>';
-        tableHtml += '<th class="col-gram">语法</th>';
+        tableHtml += '<th class="col-mean ref-hideable">意思</th>';
+        tableHtml += '<th class="col-sent ref-hideable">例句</th>';
+        tableHtml += '<th class="col-trans ref-hideable">翻译</th>';
+        tableHtml += '<th class="col-gram ref-hideable">语法</th>';
+        tableHtml += '<th class="ref-reveal-col" style="width:52px;"></th>';
         tableHtml += '</tr></thead><tbody>';
 
-        data.forEach(v => {
-            tableHtml += '<tr>';
+        data.forEach((v, index) => {
+            tableHtml += '<tr class="' + (index % 2 !== 0 ? 'even-row' : '') + '">';
             tableHtml += '<td class="col-num">' + escHtml(v.num) + '</td>';
             tableHtml += '<td><span class="vocab-word">' + v.word + '</span><button class="speak-btn" data-speak="' + v.wordTxt.replace(/"/g, '&quot;') + '" title="点击发音">🔊</button></td>';
             tableHtml += '<td><span class="vocab-phon">' + escHtml(v.phon) + '</span></td>';
-            tableHtml += '<td><span class="vocab-mean">' + v.mean + '</span></td>';
-            tableHtml += '<td class="vocab-sent">' + v.sent + '</td>';
-            tableHtml += '<td class="vocab-trans">' + v.trans + '</td>';
-            tableHtml += '<td class="vocab-gram">' + v.gram + '</td>';
+            tableHtml += '<td class="ref-hideable"><span class="vocab-mean">' + v.mean + '</span></td>';
+            tableHtml += '<td class="vocab-sent ref-hideable">' + v.sent + '</td>';
+            tableHtml += '<td class="vocab-trans ref-hideable">' + v.trans + '</td>';
+            tableHtml += '<td class="vocab-gram ref-hideable">' + v.gram + '</td>';
+            tableHtml += '<td class="ref-reveal-col"><button class="row-reveal-btn">显示</button></td>';
             tableHtml += '</tr>';
         });
         tableHtml += '</tbody></table>';
@@ -1262,23 +1306,74 @@ document.addEventListener('DOMContentLoaded', () => {
     // 关闭参考页
     elements.refCloseBtn.addEventListener('click', () => switchView('setup'));
 
-    // 打开参考页按钮
+    // 隐藏详情列
+    document.getElementById('ref-hide-btn').addEventListener('click', function() {
+        var area = elements.refContentArea;
+        area.querySelectorAll('.expanded-detail-row').forEach(el => el.remove());
+        area.querySelectorAll('.row-reveal-btn').forEach(btn => btn.textContent = '显示');
+        area.classList.add('table-details-hidden');
+    });
+    
+    // 重置表格
+    document.getElementById('ref-reset-btn').addEventListener('click', function() {
+        var area = elements.refContentArea;
+        area.querySelectorAll('.expanded-detail-row').forEach(el => el.remove());
+        area.querySelectorAll('.row-reveal-btn').forEach(btn => btn.textContent = '显示');
+        area.classList.remove('table-details-hidden');
+    });
+
+   // 打开参考页按钮
     elements.openReferenceBtn.addEventListener('click', openReference);
 
-    // 参考页发音按钮（事件委托）
+    // 参考页点击事件（发音 + 逐行显示，合并委托）
     elements.refContentArea.addEventListener('click', function(e) {
-        var btn = e.target.closest('.speak-btn');
-        if (btn) {
+        var speakBtn = e.target.closest('.speak-btn');
+        if (speakBtn) {
             e.stopPropagation();
-            var word = btn.getAttribute('data-speak');
+            var word = speakBtn.getAttribute('data-speak');
             if (!word) return;
-            // 激活 iOS 音频上下文（与初学者模式相同处理）
+            // 防止 iOS 双触发
+            if (speakBtn.dataset.playing) return;
+            speakBtn.dataset.playing = '1';
+            setTimeout(function() { delete speakBtn.dataset.playing; }, 1000);
             activateMobileAudio();
-            // voiceStatus 在 study-view 里，参考页不可见但不影响发音
             speak(word);
-            // 给按钮短暂视觉反馈
-            btn.textContent = '🔉';
-            setTimeout(function() { btn.textContent = '🔊'; }, 800);
+            speakBtn.textContent = '🔉';
+            setTimeout(function() { speakBtn.textContent = '🔊'; }, 800);
+            return;
+        }
+        var revealBtn = e.target.closest('.row-reveal-btn');
+        if (revealBtn) {
+            var row = revealBtn.closest('tr');
+            var nextRow = row.nextElementSibling;
+            if (nextRow && nextRow.classList.contains('expanded-detail-row')) {
+                nextRow.remove();
+                revealBtn.textContent = '显示';
+                return;
+            }
+            var visibleColspan = 0;
+            row.closest('table').querySelectorAll('thead th').forEach(function(th) {
+                if (window.getComputedStyle(th).display !== 'none') visibleColspan++;
+            });
+            var hiddenHtml = '';
+            var isChunks = row.closest('.chunks-table') !== null;
+            var tds = row.querySelectorAll('td');
+            if (isChunks) {
+                hiddenHtml += '<div style="margin-bottom:6px;"><strong>书中例句：</strong>' + tds[2].innerHTML + '</div>';
+                hiddenHtml += '<div style="margin-bottom:6px;"><strong>英文释义：</strong>' + tds[3].innerHTML + '</div>';
+                hiddenHtml += '<div style="margin-bottom:6px;"><strong>中文释义：</strong>' + tds[4].innerHTML + '</div>';
+                hiddenHtml += '<div style="margin-bottom:0;"><strong>生活化例句：</strong>' + tds[5].innerHTML + '</div>';
+            } else {
+                hiddenHtml += '<div style="margin-bottom:6px;"><strong>意思：</strong>' + tds[3].innerHTML + '</div>';
+                hiddenHtml += '<div style="margin-bottom:6px;"><strong>例句：</strong>' + tds[4].innerHTML + '</div>';
+                hiddenHtml += '<div style="margin-bottom:6px;"><strong>翻译：</strong>' + tds[5].innerHTML + '</div>';
+                hiddenHtml += '<div style="margin-bottom:0;"><strong>语法：</strong>' + tds[6].innerHTML + '</div>';
+            }
+            var detailRow = document.createElement('tr');
+            detailRow.className = 'expanded-detail-row';
+            detailRow.innerHTML = '<td colspan="' + visibleColspan + '" style="background:#f8f9fa; border:1px solid #e5e7eb; border-top:none; padding: 12px 16px; font-size:13.5px;">' + hiddenHtml + '</td>';
+            row.parentNode.insertBefore(detailRow, row.nextSibling);
+            revealBtn.textContent = '收起';
         }
     });
 
@@ -1564,6 +1659,9 @@ document.addEventListener('DOMContentLoaded', () => {
     views.study.addEventListener('click', e => {
         const wordDisplay = e.target.closest('.word-display');
         if (wordDisplay) {
+            if (wordDisplay.dataset.playing) return;
+            wordDisplay.dataset.playing = '1';
+            setTimeout(function() { delete wordDisplay.dataset.playing; }, 1000);
             const word = state.studyList[state.currentWordIndex]?.english;
             speak(word);
             if (navigator.clipboard && window.isSecureContext) {
