@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>单词学习与测试程序 V3.3.4</title>
+    <title>单词学习与测试程序 V3.3.5</title>
 
 <!-- 图标：硬编码 base64 PNG，确保 iOS 添加主屏幕时能立即读取 -->
 <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABmJLR0QA/wD/AP+gvaeTAAAEBElEQVRYhcWWTUxcVRSAv3vnAVOGYQZGoZaQ1lKqohFbaFMT3TRdGHVhU41oLTtTV93UaE2IYdPUxuCGRU20CzUN0ZhutF2ocadptCS0kNDQQgkJlR+ReTNlYGbeu8fFzDAzFOaN1eJJbt7Jffed79xzzj3vKgpEztFgHE5geEmEVoSACJAdq7rJ6+u9l+yagjnbCKMYLtQs8ZnqJ5ljqpzi9POaEs4jBEsZvw/42nU3RHO49gw3Vh3Iwr9GUA8YntMXDDwb+pibSs7RYNLc2oSd53UDGK4HQ3Ro43Bi0+ECAk/HbY5ZGF7edHh+rtsSoeVfwfGhqiMQaED56zGLk7A4VQ4cIzxjIdR4wpWFdegTVP0u0BWgK8GXGUpXIhSICO7NH0hefi9D3QCe1cOW984Vuq0LX8c7FJzaIlk7qx9+DOfaN7hTv5WCIwLaK+yq5hF0Y/uG8A3F8nvCyTlQKueSSmRzvRpjZHaQ9PxSCboqC44B7Vlwy1FwnQL+NMsDx7EHLmIESM/gjI/gptb4UAY8nwKval+J5g0vXCIVeJdA5c+s2A7OlfMkxz4l+sWP+WJUCtEVnnAErLKO2vJi1rLB/f0n3MR20uY27tVR9O0R3FqFsf8sToI/5AkXAcsTbrJpAJAojt1OzfEeqpzLxC+NoyIRqNqNv24WZwUq/Jml2h/2hGci4AFHwOQcUPVUdfVk9/giwdcBXmHanuTL0Qv0+gtCUF3nCUcKi3ADuAiQXskuulcm7Ek+utrH0ce7il9sqSuro97TB9br7asjK71XTjNhTzJhT3J2sI9TnSdpDbcUO+CrQlUEPAvc8oLne4CQa0bdTxzl7GAfAO93nGRnaMe60VH+MGZ5qWSNWZ5wAYwpMrwztIOefacAaA42rQsnOoMbm/MscO0JF3DvXMO9M1RkvznYlIdL9gMxYAzu9DArv3wOTtqzwFWiFyn3f66bOlH1LUhiEYnPYeLzmPg8OKn7vj+oxIdIOfBye/s/gSNrfkabDS/qA/8HPNcH7JLwuoNY+7uxttaWgGt0815UuJOKR1tRlAdHiGkRhkruPPwkeuk6JrULHWnF1/QUvv1v4KsJ4Ws9gtWyHcRg2IP/4F5wq6H+AJV7XsC3RZWCY4RxrYSvygp70o/vwDF0cB++h9qwmiPoCNDwfGbHU8O4cyO4W9vR4TaUasLaZnml7zvf6UMMp9IcRmhcF04A3dCCSg7h3l3G3LoGKonYs5joX5joAmLPZj5040g0honNIPE/MPFZ3IRsBLdF85YCiH3AbuXwqxgiD7LgCp6iXF5t/JaLGqD2DGNieA5hdBPgdg4Oa6660ktlLMrbCG+K0IYQ/o/gdxHGjPC9aPq3DbB6ffobtakX0/JorMwAAAAASUVORK5CYII=">
@@ -214,23 +214,23 @@
     }
 
     /* --- Chunks 表格 (实用语块) --- */
-    .chunks-table {
-        width: 100%; border-collapse: collapse; font-size: 13.5px;
-        table-layout: fixed;
-    }
-    .chunks-table th {
-        background-color: #dbeafe; color: #1e40af;
-        padding: 8px 10px; text-align: left;
-        border: 1px solid #bfdbfe; font-size: 12px; font-weight: 700;
-    }
-    .chunks-table td {
-        padding: 10px; border: 1px solid #e5e7eb;
-        vertical-align: top; line-height: 1.55;
-    }
-    .chunks-table tr.even-row td { background: #f8fbff; }
-    .chunks-table tr:hover td { background: #eff6ff; }
-    .chunks-table tr.expanded-detail-row td { background: #f8f9fa !important; }
-    .chunks-table tr.expanded-detail-row:hover td { background: #f0f4f8 !important; }
+    .chunks-table, .sentences-table {
+    width: 100%; border-collapse: collapse; font-size: 13.5px;
+    table-layout: fixed;
+}
+.chunks-table th, .sentences-table th {
+    background-color: #dbeafe; color: #1e40af;
+    padding: 8px 10px; text-align: left;
+    border: 1px solid #bfdbfe; font-size: 12px; font-weight: 700;
+}
+.chunks-table td, .sentences-table td {
+    padding: 10px; border: 1px solid #e5e7eb;
+    vertical-align: top; line-height: 1.55;
+}
+.chunks-table tr.even-row td, .sentences-table tr.even-row td { background: #f8fbff; }
+.chunks-table tr:hover td, .sentences-table tr:hover td { background: #eff6ff; }
+.chunks-table tr.expanded-detail-row td, .sentences-table tr.expanded-detail-row td { background: #f8f9fa !important; }
+.chunks-table tr.expanded-detail-row:hover td, .sentences-table tr.expanded-detail-row:hover td { background: #f0f4f8 !important; }
 
     /* 列宽 */
     .chunks-table .col-num  { width: 36px; text-align: center; color: var(--gray); font-size: 12px; }
@@ -320,9 +320,9 @@
 
     /* 手机竖屏：cards 模式 */
     @media (max-width: 600px) {
-        .chunks-table, .vocab-table { display: none; }
-        .ref-cards { display: block; }
-    }
+    .chunks-table, .vocab-table, .sentences-table { display: none; }
+    .ref-cards { display: block; }
+}
     @media (min-width: 601px) {
         .ref-cards { display: none; }
     }
@@ -419,7 +419,7 @@
 <script>
 document.querySelector('.app-container').innerHTML = `
 <div id="setup-view" class="view active">
-    <h1>单词学习与测试程序 V3.3.4</h1>
+    <h1>单词学习与测试程序 V3.3.5</h1>
     <div class="setup-section">
         <div class="inline-input-group">
             <label for="name-input">请输入你的名字:</label>
@@ -585,6 +585,7 @@ document.querySelector('.app-container').innerHTML = `
             <nav class="ref-tab-nav">
                 <button class="ref-tab-btn active" data-ref-tab="chunks">📌 实用语块</button>
                 <button class="ref-tab-btn" data-ref-tab="vocab">📚 重点词汇</button>
+                <button class="ref-tab-btn" id="ref-tab-sentences" data-ref-tab="sentences" style="display:none;">📝 精选例句</button>
             </nav>
             <button id="ref-close-btn" class="btn btn-outline" style="flex-shrink:0;padding:5px 12px;font-size:13px;">✕ 关闭</button>
         </div>
@@ -636,6 +637,8 @@ document.addEventListener('DOMContentLoaded', () => {
         refChunks: [],   // Sheet1 数据
         refVocab: [],    // Sheet2 数据
         refBookTitle: '',// 书名（第1行D列合并单元格内容）
+        refSentences: [],      // Sheet3 数据（动态命名的文章句子表）
+        refSentencesTitle: '', // Sheet3 自己的标题
         currentRefTab: 'chunks'
     };
 
@@ -700,10 +703,11 @@ document.addEventListener('DOMContentLoaded', () => {
         onlineVoiceSelect: document.getElementById('onlineVoiceSelect'),
         voiceStatus: document.getElementById('voiceStatus'),
         // Reference
-        refContentArea: document.getElementById('ref-content-area'),
-        refBookTitleHeader: document.getElementById('ref-book-title-header'),
-        refSearchInput: document.getElementById('ref-search-input'),
-        refCloseBtn: document.getElementById('ref-close-btn')
+            refContentArea: document.getElementById('ref-content-area'),
+            refBookTitleHeader: document.getElementById('ref-book-title-header'),
+            refSearchInput: document.getElementById('ref-search-input'),
+            refCloseBtn: document.getElementById('ref-close-btn'),
+            refTabSentences: document.getElementById('ref-tab-sentences')
     };
 
     /* ====================================================
@@ -996,10 +1000,11 @@ document.addEventListener('DOMContentLoaded', () => {
      *   列: A=序号, B=单词/短语, C=标准音标, D=意思, E=例句, F=翻译, G=语法
      */
     function parseReferenceSheets(wb) {
-        state.refChunks = [];
-        state.refVocab = [];
-        state.refBookTitle = '';
-
+            state.refChunks = [];
+            state.refVocab = [];
+            state.refBookTitle = '';
+            state.refSentences = [];
+            state.refSentencesTitle = '';
         // ---- Sheet 1 ----
         if (wb.SheetNames.length >= 1) {
             const ws1 = wb.Sheets[wb.SheetNames[0]];
@@ -1073,6 +1078,36 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
         }
+    // ---- Sheet 3（动态命名，按文章标题命名，按位置取第3个Sheet） ----
+if (wb.SheetNames.length >= 3) {
+    const ws3 = wb.Sheets[wb.SheetNames[2]];
+    const titleCell3 = ws3['A1'] || ws3['C1'] || ws3['B1'];
+    if (titleCell3) state.refSentencesTitle = cellText(titleCell3).trim();
+
+    const range3 = XLSX.utils.decode_range(ws3['!ref'] || 'A1:E100');
+    for (let r = 2; r <= range3.e.r; r++) { // 第1行标题, 第2行表头, 第3行起数据
+        const numCell  = ws3[XLSX.utils.encode_cell({r: r, c: 0})];
+        const enCell   = ws3[XLSX.utils.encode_cell({r: r, c: 1})];
+        const zhCell   = ws3[XLSX.utils.encode_cell({r: r, c: 2})];
+        const typeCell = ws3[XLSX.utils.encode_cell({r: r, c: 3})];
+        const noteCell = ws3[XLSX.utils.encode_cell({r: r, c: 4})];
+
+        const enText = cellText(enCell).trim();
+        if (!enText) continue;
+
+        state.refSentences.push({
+            num:     cellText(numCell),
+            en:      cellToHtml(enCell),
+            enTxt:   enText,
+            zh:      cellToHtml(zhCell),
+            zhTxt:   cellText(zhCell),
+            type:    cellToHtml(typeCell),
+            typeTxt: cellText(typeCell),
+            note:    cellToHtml(noteCell),
+            noteTxt: cellText(noteCell)
+        });
+    }
+}
     }
 
     /* ====================================================
@@ -1119,8 +1154,11 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.modeSelectionControls.style.display = 'block';
 
         // 显示「词汇参考」按钮（如果有参考数据）
-        const hasRef = state.refChunks.length > 0 || state.refVocab.length > 0;
-        elements.openReferenceBtn.style.display = hasRef ? 'inline-flex' : 'none';
+            const hasRef = state.refChunks.length > 0 || state.refVocab.length > 0 || state.refSentences.length > 0;
+            elements.openReferenceBtn.style.display = hasRef ? 'inline-flex' : 'none';
+            
+            // 显示/隐藏「精选例句」tab（没有第3个Sheet时自动隐藏）
+            elements.refTabSentences.style.display = state.refSentences.length > 0 ? 'inline-block' : 'none';
 
         loadSystemVoices();
     }
@@ -1154,18 +1192,18 @@ document.addEventListener('DOMContentLoaded', () => {
        词汇参考页渲染
     ==================================================== */
     function renderReference(filter) {
-        filter = (filter || '').toLowerCase().trim();
-        const isChunks = state.currentRefTab === 'chunks';
-
-        // 更新标题
-        elements.refBookTitleHeader.textContent = state.refBookTitle || '词汇参考';
-
-        if (isChunks) {
-            renderChunks(filter);
-        } else {
-            renderVocab(filter);
+            filter = (filter || '').toLowerCase().trim();
+        
+            elements.refBookTitleHeader.textContent = state.refBookTitle || '词汇参考';
+        
+            if (state.currentRefTab === 'chunks') {
+                renderChunks(filter);
+            } else if (state.currentRefTab === 'vocab') {
+                renderVocab(filter);
+            } else if (state.currentRefTab === 'sentences') {
+                renderSentences(filter);
+            }
         }
-    }
 
     function renderChunks(filter) {
         const data = filter
@@ -1288,6 +1326,58 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.refContentArea.innerHTML = tableHtml + cardsHtml;
     }
 
+   function renderSentences(filter) {
+    const data = filter
+        ? state.refSentences.filter(s =>
+            s.enTxt.toLowerCase().includes(filter) ||
+            s.zhTxt.toLowerCase().includes(filter) ||
+            s.typeTxt.toLowerCase().includes(filter) ||
+            s.noteTxt.toLowerCase().includes(filter))
+        : state.refSentences;
+
+    if (data.length === 0) {
+        elements.refContentArea.innerHTML = '<div class="ref-empty"><div class="ref-empty-icon">🔍</div><p>' + (state.refSentences.length === 0 ? '未检测到精选例句数据' : '没有找到匹配的句子') + '</p></div>';
+        return;
+    }
+
+    let tableHtml = '<div class="ref-book-title">' + escHtml(state.refSentencesTitle || state.refBookTitle) + '</div>';
+    tableHtml += '<table class="sentences-table"><thead><tr>';
+    tableHtml += '<th style="width:6%;text-align:center;">#</th>';
+    tableHtml += '<th style="width:32%;">英文原句</th>';
+    tableHtml += '<th class="ref-hideable" style="width:24%;">中文翻译</th>';
+    tableHtml += '<th class="ref-hideable" style="width:12%;">类型</th>';
+    tableHtml += '<th class="ref-hideable" style="width:26%;">值得关注的点</th>';
+    tableHtml += '<th class="ref-reveal-col" style="width:52px;"></th>';
+    tableHtml += '</tr></thead><tbody>';
+
+    data.forEach((s, index) => {
+        tableHtml += '<tr class="' + (index % 2 !== 0 ? 'even-row' : '') + '">';
+        tableHtml += '<td style="text-align:center;color:var(--gray);font-size:12px;">' + escHtml(s.num) + '</td>';
+        tableHtml += '<td class="chunk-cell-book">' + s.en + '<button class="speak-btn" data-speak="' + s.enTxt.replace(/"/g, '&quot;') + '" title="点击发音">🔊</button></td>';
+        tableHtml += '<td class="chunk-cell-zh ref-hideable">' + s.zh + '</td>';
+        tableHtml += '<td class="vocab-gram ref-hideable">' + s.type + '</td>';
+        tableHtml += '<td class="chunk-cell-life ref-hideable">' + s.note + '</td>';
+        tableHtml += '<td class="ref-reveal-col"><button class="row-reveal-btn">显示</button></td>';
+        tableHtml += '</tr>';
+    });
+    tableHtml += '</tbody></table>';
+
+    let cardsHtml = '<div class="ref-cards">';
+    data.forEach(s => {
+        cardsHtml += '<div class="ref-card">';
+        cardsHtml += '<div class="ref-card-header">';
+        cardsHtml += '<span class="ref-card-term" style="font-size:14px;">' + s.en + '</span>';
+        cardsHtml += '<button class="speak-btn" data-speak="' + s.enTxt.replace(/"/g, '&quot;') + '" title="点击发音">🔊</button>';
+        cardsHtml += '</div>';
+        if (s.zhTxt)   cardsHtml += '<div class="ref-card-row ref-card-zh"><span class="ref-card-label">翻译:</span>' + s.zh + '</div>';
+        if (s.typeTxt) cardsHtml += '<div class="ref-card-row ref-card-gram"><span class="ref-card-label">类型:</span>' + s.type + '</div>';
+        if (s.noteTxt) cardsHtml += '<div class="ref-card-row ref-card-book"><span class="ref-card-label">要点:</span>' + s.note + '</div>';
+        cardsHtml += '</div>';
+    });
+    cardsHtml += '</div>';
+
+    elements.refContentArea.innerHTML = tableHtml + cardsHtml;
+} 
     function openReference() {
         state.currentRefTab = 'chunks';
         document.querySelectorAll('.ref-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.refTab === 'chunks'));
@@ -1369,12 +1459,17 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             var hiddenHtml = '';
             var isChunks = row.closest('.chunks-table') !== null;
+            var isSentences = row.closest('.sentences-table') !== null;
             var tds = row.querySelectorAll('td');
             if (isChunks) {
                 hiddenHtml += '<div style="margin-bottom:6px;"><strong>书中例句：</strong>' + tds[2].innerHTML + '</div>';
                 hiddenHtml += '<div style="margin-bottom:6px;"><strong>英文释义：</strong>' + tds[3].innerHTML + '</div>';
                 hiddenHtml += '<div style="margin-bottom:6px;"><strong>中文释义：</strong>' + tds[4].innerHTML + '</div>';
                 hiddenHtml += '<div style="margin-bottom:0;"><strong>生活化例句：</strong>' + tds[5].innerHTML + '</div>';
+            } else if (isSentences) {
+                hiddenHtml += '<div style="margin-bottom:6px;"><strong>中文翻译：</strong>' + tds[2].innerHTML + '</div>';
+                hiddenHtml += '<div style="margin-bottom:6px;"><strong>类型：</strong>' + tds[3].innerHTML + '</div>';
+                hiddenHtml += '<div style="margin-bottom:0;"><strong>值得关注的点：</strong>' + tds[4].innerHTML + '</div>';
             } else {
                 hiddenHtml += '<div style="margin-bottom:6px;"><strong>意思：</strong>' + tds[3].innerHTML + '</div>';
                 hiddenHtml += '<div style="margin-bottom:6px;"><strong>例句：</strong>' + tds[4].innerHTML + '</div>';
