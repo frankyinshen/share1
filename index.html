@@ -624,22 +624,23 @@ document.querySelector('.app-container').innerHTML = `
 
 document.addEventListener('DOMContentLoaded', () => {
     const state = {
-        userName: '', workbook: null, allWords: [], studyList: [], mainSessionErrors: [],
-        currentWordIndex: 0, currentMode: null, sessionSubErrors: [],
-        beginnerUnfamiliar: [],
-        isCategorizedReview: false, delaySettings: { test: 1.5, phonics: 1.5 },
-        autoPlayTimeout: null,
-        serverBaseUrl: 'https://res.evanyin.dpdns.org/', currentServerUrl: 'https://res.evanyin.dpdns.org/',
-        isGlobalShowAll: false,
-        isAutoAudio: true,
-        // 词汇参考数据
-        refChunks: [],   // Sheet1 数据
-        refVocab: [],    // Sheet2 数据
-        refBookTitle: '',// 书名（第1行D列合并单元格内容）
-        refSentences: [],      // Sheet3 数据（动态命名的文章句子表）
-        refSentencesTitle: '', // Sheet3 自己的标题
-        currentRefTab: 'chunks'
-    };
+    userName: '', workbook: null, allWords: [], studyList: [], mainSessionErrors: [],
+    currentWordIndex: 0, currentMode: null, sessionSubErrors: [],
+    beginnerUnfamiliar: [],
+    isCategorizedReview: false, delaySettings: { test: 1.5, phonics: 1.5 },
+    autoPlayTimeout: null,
+    serverBaseUrl: 'https://res.evanyin.dpdns.org/', currentServerUrl: 'https://res.evanyin.dpdns.org/',
+    isGlobalShowAll: false,
+    isAutoAudio: true,
+    // 词汇参考数据
+    refChunks: [],   // Sheet1 数据
+    refVocab: [],    // Sheet2 数据
+    refBookTitle: '',// 书名（第1行D列合并单元格内容）
+    refSentences: [],      // Sheet3 数据（动态命名的文章句子表）
+    refSentencesTitle: '', // Sheet3 自己的标题
+    currentRefTab: 'chunks',
+    _pendingTTS: null   // ← 新增：TTS 偏好待应用缓存
+};
 
     const views = {
         setup: document.getElementById('setup-view'),
@@ -744,9 +745,7 @@ function applySavedTTS() {
         elements.ttsToggle.dispatchEvent(new Event('change'));
     }
     if (p.onlineVoice) elements.onlineVoiceSelect.value = p.onlineVoice;
-    if (p.systemVoice && elements.systemVoiceSelect.querySelector('option[value="' + p.systemVoice + '"]')) {
-        elements.systemVoiceSelect.value = p.systemVoice;
-    }
+    // systemVoiceSelect.value 已由 loadSystemVoices() 从 localStorage 读取并设置，此处无需重复
     state._pendingTTS = null;
 }
     function getDeviceType() {
@@ -762,16 +761,18 @@ function applySavedTTS() {
        TTS
     ==================================================== */
     elements.ttsToggle.addEventListener('change', () => {
-        const online = elements.ttsToggle.checked;
-        elements.systemVoiceSelect.addEventListener('change', saveData);
-        elements.onlineVoiceSelect.addEventListener('change', saveData);
-        elements.ttsToggle.addEventListener('change', saveData);
-        elements.lblSystem.classList.toggle('active', !online);
-        elements.lblOnline.classList.toggle('active', online);
-        elements.systemVoiceSub.style.display = online ? 'none' : 'flex';
-        elements.onlineVoiceSub.style.display = online ? 'flex' : 'none';
-        elements.voiceStatus.innerText = '';
-    });
+    const online = elements.ttsToggle.checked;
+    elements.lblSystem.classList.toggle('active', !online);
+    elements.lblOnline.classList.toggle('active', online);
+    elements.systemVoiceSub.style.display = online ? 'none' : 'flex';
+    elements.onlineVoiceSub.style.display = online ? 'flex' : 'none';
+    elements.voiceStatus.innerText = '';
+});
+
+// ✅ 三个监听器独立注册，只注册一次
+elements.systemVoiceSelect.addEventListener('change', saveData);
+elements.onlineVoiceSelect.addEventListener('change', saveData);
+elements.ttsToggle.addEventListener('change', saveData);
 
     function loadSystemVoices() {
     const voices = window.speechSynthesis.getVoices();
@@ -1161,28 +1162,27 @@ if (wb.SheetNames.length >= 3) {
     }
 
     function processSheet(sheetName, type) {
-        const worksheet = state.workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, range: 2 });
-        state.allWords = jsonData
-            .filter(row => row[1] && String(row[1]).trim() !== '')
-            .map(row => ({
-                id: row[0], english: String(row[1] || '').trim(), phonetic: row[2] || '',
-                chinese: row[3] || '', sentence: row[4] || '',
-                translation: row[5] || '', notes: row[6] || ''
-            }));
-        setStatus('加载成功!', type);
-        elements.welcomeMessage.textContent = (state.userName || '你好') + '，共加载了 ' + state.allWords.length + ' 个单词。';
-        elements.modeSelectionControls.style.display = 'block';
+    const worksheet = state.workbook.Sheets[sheetName];
+    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, range: 2 });
+    state.allWords = jsonData
+        .filter(row => row[1] && String(row[1]).trim() !== '')
+        .map(row => ({
+            id: row[0], english: String(row[1] || '').trim(), phonetic: row[2] || '',
+            chinese: row[3] || '', sentence: row[4] || '',
+            translation: row[5] || '', notes: row[6] || ''
+        }));
+    setStatus('加载成功!', type);
+    elements.welcomeMessage.textContent = (state.userName || '你好') + '，共加载了 ' + state.allWords.length + ' 个单词。';
+    elements.modeSelectionControls.style.display = 'block';
 
-        // 显示「词汇参考」按钮（如果有参考数据）
-            const hasRef = state.refChunks.length > 0 || state.refVocab.length > 0 || state.refSentences.length > 0;
-            elements.openReferenceBtn.style.display = hasRef ? 'inline-flex' : 'none';
-            
-            // 显示/隐藏「精选例句」tab（没有第3个Sheet时自动隐藏）
-            elements.refTabSentences.style.display = state.refSentences.length > 0 ? 'inline-block' : 'none';
-
-        loadSystemVoices();
-    }
+    // 显示「词汇参考」按钮（如果有参考数据）
+        const hasRef = state.refChunks.length > 0 || state.refVocab.length > 0 || state.refSentences.length > 0;
+        elements.openReferenceBtn.style.display = hasRef ? 'inline-flex' : 'none';
+        
+        // 显示/隐藏「精选例句」tab（没有第3个Sheet时自动隐藏）
+        elements.refTabSentences.style.display = state.refSentences.length > 0 ? 'inline-block' : 'none';
+    // loadSystemVoices() 已由顶层和 voiceschanged 事件负责，此处无需重复调用
+}
 
     async function handleUrlLoad(directUrl) {
         const url = directUrl || elements.urlInput.value.trim();
@@ -1273,7 +1273,7 @@ if (wb.SheetNames.length >= 3) {
             cardsHtml += '<div class="ref-card">';
             cardsHtml += '<div class="ref-card-header">';
             cardsHtml += '<span class="ref-card-term">' + c.chunk + '</span>';
-            cardsHtml += '<button class="speak-btn" data-speak="' + c.chunkTxt.replace(/"/g, '&quot;') + '" title="点击发音">🔊</button>';
+            cardsHtml += '<button class="speak-btn" data-speak="' + escHtml(c.chunkTxt) + '" title="点击发音">🔊</button>';
             cardsHtml += '</div>';
             if (c.bookTxt) cardsHtml += '<div class="ref-card-row ref-card-book"><span class="ref-card-label">例句:</span>' + c.book + '</div>';
             if (c.enTxt)   cardsHtml += '<div class="ref-card-row"><span class="ref-card-label">释义:</span><em>' + c.en + '</em></div>';
@@ -1317,7 +1317,7 @@ if (wb.SheetNames.length >= 3) {
         data.forEach((v, index) => {
             tableHtml += '<tr class="' + (index % 2 !== 0 ? 'even-row' : '') + '">';
             tableHtml += '<td class="col-num">' + escHtml(v.num) + '</td>';
-            tableHtml += '<td><span class="vocab-word">' + v.word + '</span><button class="speak-btn" data-speak="' + v.wordTxt.replace(/"/g, '&quot;') + '" title="点击发音">🔊</button></td>';
+            tableHtml += '<td><span class="vocab-word">' + v.word + '</span><button class="speak-btn" data-speak="' + escHtml(v.wordTxt) + '" title="点击发音">🔊</button></td>';
             tableHtml += '<td><span class="vocab-phon">' + escHtml(v.phon) + '</span></td>';
             tableHtml += '<td class="ref-hideable"><span class="vocab-mean">' + v.mean + '</span></td>';
             tableHtml += '<td class="vocab-sent ref-hideable">' + v.sent + '</td>';
@@ -1334,7 +1334,7 @@ if (wb.SheetNames.length >= 3) {
             cardsHtml += '<div class="ref-card">';
             cardsHtml += '<div class="ref-card-header">';
             cardsHtml += '<span class="ref-card-term">' + v.word + '</span>';
-            cardsHtml += '<button class="speak-btn" data-speak="' + v.wordTxt.replace(/"/g, '&quot;') + '" title="点击发音">🔊</button>';
+            cardsHtml += '<button class="speak-btn" data-speak="' + escHtml(v.wordTxt) + '" title="点击发音">🔊</button>';
             if (v.phon) cardsHtml += '<span class="ref-card-phon">' + escHtml(v.phon) + '</span>';
             if (v.meanTxt) cardsHtml += '<span class="ref-card-zh">' + v.mean + '</span>';
             cardsHtml += '</div>';
@@ -1375,7 +1375,7 @@ if (wb.SheetNames.length >= 3) {
     data.forEach((s, index) => {
         tableHtml += '<tr class="' + (index % 2 !== 0 ? 'even-row' : '') + '">';
         tableHtml += '<td style="text-align:center;color:var(--gray);font-size:12px;">' + escHtml(s.num) + '</td>';
-        tableHtml += '<td class="chunk-cell-book">' + s.en + '<button class="speak-btn" data-speak="' + s.enTxt.replace(/"/g, '&quot;') + '" title="点击发音">🔊</button></td>';
+        tableHtml += '<td class="chunk-cell-book">' + s.en + '<button class="speak-btn" data-speak="' + escHtml(s.enTxt) + '" title="点击发音">🔊</button></td>';
         tableHtml += '<td class="chunk-cell-zh ref-hideable">' + s.zh + '</td>';
         tableHtml += '<td class="vocab-gram ref-hideable">' + s.type + '</td>';
         tableHtml += '<td class="chunk-cell-life ref-hideable">' + s.note + '</td>';
@@ -1389,7 +1389,7 @@ if (wb.SheetNames.length >= 3) {
         cardsHtml += '<div class="ref-card">';
         cardsHtml += '<div class="ref-card-header">';
         cardsHtml += '<span class="ref-card-term" style="font-size:14px;">' + s.en + '</span>';
-        cardsHtml += '<button class="speak-btn" data-speak="' + s.enTxt.replace(/"/g, '&quot;') + '" title="点击发音">🔊</button>';
+        cardsHtml += '<button class="speak-btn" data-speak="' + escHtml(s.enTxt) + '" title="点击发音">🔊</button>';
         cardsHtml += '</div>';
         if (s.zhTxt)   cardsHtml += '<div class="ref-card-row ref-card-zh"><span class="ref-card-label">翻译:</span>' + s.zh + '</div>';
         if (s.typeTxt) cardsHtml += '<div class="ref-card-row ref-card-gram"><span class="ref-card-label">类型:</span>' + s.type + '</div>';
@@ -1558,43 +1558,43 @@ if (wb.SheetNames.length >= 3) {
     }
 
     function startSession(wordList, mode, isCategorizedReview) {
-        state.studyList = [...wordList];
-        state.currentMode = mode;
-        state.currentWordIndex = 0;
-        state.sessionSubErrors = [];
-        state.beginnerUnfamiliar = [];
-        state.isCategorizedReview = isCategorizedReview;
-        if (!isCategorizedReview) state.mainSessionErrors = [];
-        if (state.studyList.length === 0) { alert("没有要学习的单词。"); return; }
+    state.studyList = [...wordList];
+    state.currentMode = mode;
+    state.currentWordIndex = 0;
+    state.sessionSubErrors = [];
+    state.beginnerUnfamiliar = [];
+    state.isCategorizedReview = isCategorizedReview;
+    if (!isCategorizedReview) state.mainSessionErrors = [];
+    if (state.studyList.length === 0) { alert("没有要学习的单词。"); return; }
 
-        if (mode === 'beginner') {
-            elements.globalShowAllBtn.style.display = 'block';
-            elements.globalDefaultBtn.style.display = 'block';
-            elements.toggleAudioBtn.style.display = 'block';
-            state.isAutoAudio = true;
-            updateAudioButtonState();
-        } else {
-            elements.globalShowAllBtn.style.display = 'none';
-            elements.globalDefaultBtn.style.display = 'none';
-            elements.toggleAudioBtn.style.display = 'none';
-        }
-
-        const clone = elements.actionsTemplate.content.cloneNode(true);
-        elements.desktopActionsPlaceholder.innerHTML = '';
-        elements.mobileActionsPlaceholder.innerHTML = '';
-        elements.desktopActionsPlaceholder.appendChild(clone);
-        elements.mobileActionsPlaceholder.appendChild(elements.actionsTemplate.content.cloneNode(true));
-        [elements.desktopActionsPlaceholder, elements.mobileActionsPlaceholder].forEach(container => {
-            container.querySelector('#test-mode-buttons').style.display = mode === 'test' ? 'grid' : 'none';
-            container.querySelector('#phonics-mode-buttons').style.display = mode === 'phonics' ? 'grid' : 'none';
-            container.querySelector('#beginner-mode-buttons').style.display = mode === 'beginner' ? 'grid' : 'none';
-        });
-        elements.toggleButtonsPanel.style.display = 'flex';
-        document.querySelectorAll('[id^="prev-word-btn"]').forEach(btn => btn.disabled = false);
-        switchView('study');
-        loadSystemVoices();
-        displayWord();
+    if (mode === 'beginner') {
+        elements.globalShowAllBtn.style.display = 'block';
+        elements.globalDefaultBtn.style.display = 'block';
+        elements.toggleAudioBtn.style.display = 'block';
+        state.isAutoAudio = true;
+        updateAudioButtonState();
+    } else {
+        elements.globalShowAllBtn.style.display = 'none';
+        elements.globalDefaultBtn.style.display = 'none';
+        elements.toggleAudioBtn.style.display = 'none';
     }
+
+    const clone = elements.actionsTemplate.content.cloneNode(true);
+    elements.desktopActionsPlaceholder.innerHTML = '';
+    elements.mobileActionsPlaceholder.innerHTML = '';
+    elements.desktopActionsPlaceholder.appendChild(clone);
+    elements.mobileActionsPlaceholder.appendChild(elements.actionsTemplate.content.cloneNode(true));
+    [elements.desktopActionsPlaceholder, elements.mobileActionsPlaceholder].forEach(container => {
+        container.querySelector('#test-mode-buttons').style.display = mode === 'test' ? 'grid' : 'none';
+        container.querySelector('#phonics-mode-buttons').style.display = mode === 'phonics' ? 'grid' : 'none';
+        container.querySelector('#beginner-mode-buttons').style.display = mode === 'beginner' ? 'grid' : 'none';
+    });
+    elements.toggleButtonsPanel.style.display = 'flex';
+    document.querySelectorAll('[id^="prev-word-btn"]').forEach(btn => btn.disabled = false);
+    switchView('study');
+    // loadSystemVoices() 已由顶层和 voiceschanged 事件负责，此处无需重复调用
+    displayWord();
+}
 
     function updateAudioButtonState() {
         elements.toggleAudioBtn.textContent = state.isAutoAudio ? '自动发音: 开' : '自动发音: 关';
