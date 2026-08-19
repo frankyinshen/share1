@@ -628,9 +628,8 @@ document.addEventListener('DOMContentLoaded', () => {
         currentWordIndex: 0, currentMode: null, sessionSubErrors: [],
         beginnerUnfamiliar: [],
         isCategorizedReview: false, delaySettings: { test: 1.5, phonics: 1.5 },
-        ttsVoice: null, isTTSReady: false, allVoices: [], autoPlayTimeout: null,
+        autoPlayTimeout: null,
         serverBaseUrl: 'https://res.evanyin.dpdns.org/', currentServerUrl: 'https://res.evanyin.dpdns.org/',
-        corsProxy: 'https://api.allorigins.win/raw?url=',
         isGlobalShowAll: false,
         isAutoAudio: true,
         // 词汇参考数据
@@ -718,16 +717,38 @@ document.addEventListener('DOMContentLoaded', () => {
         views[viewName].classList.add('active');
     }
     function saveData() {
-        localStorage.setItem('wordLearner_userName', state.userName);
-        localStorage.setItem('wordLearner_delaySettings', JSON.stringify(state.delaySettings));
-        if (state.ttsVoice) localStorage.setItem('wordLearner_voiceURI', state.ttsVoice.voiceURI);
+    localStorage.setItem('wordLearner_userName', state.userName);
+    localStorage.setItem('wordLearner_delaySettings', JSON.stringify(state.delaySettings));
+    // 持久化 TTS 偏好
+    localStorage.setItem('wordLearner_ttsOnline', elements.ttsToggle.checked ? '1' : '0');
+    localStorage.setItem('wordLearner_systemVoice', elements.systemVoiceSelect.value);
+    localStorage.setItem('wordLearner_onlineVoice', elements.onlineVoiceSelect.value);
+}
+function loadData() {
+    state.userName = localStorage.getItem('wordLearner_userName') || '';
+    elements.nameInput.value = state.userName;
+    const s = localStorage.getItem('wordLearner_delaySettings');
+    if (s) state.delaySettings = JSON.parse(s);
+    // 读取 TTS 偏好（不在此处直接应用，等 voices 加载后再应用）
+    state._pendingTTS = {
+        online: localStorage.getItem('wordLearner_ttsOnline'),
+        systemVoice: localStorage.getItem('wordLearner_systemVoice'),
+        onlineVoice: localStorage.getItem('wordLearner_onlineVoice')
+    };
+}
+function applySavedTTS() {
+    if (!state._pendingTTS) return;
+    const p = state._pendingTTS;
+    if (p.online !== null) {
+        elements.ttsToggle.checked = p.online === '1';
+        elements.ttsToggle.dispatchEvent(new Event('change'));
     }
-    function loadData() {
-        state.userName = localStorage.getItem('wordLearner_userName') || '';
-        elements.nameInput.value = state.userName;
-        const s = localStorage.getItem('wordLearner_delaySettings');
-        if (s) state.delaySettings = JSON.parse(s);
+    if (p.onlineVoice) elements.onlineVoiceSelect.value = p.onlineVoice;
+    if (p.systemVoice && elements.systemVoiceSelect.querySelector('option[value="' + p.systemVoice + '"]')) {
+        elements.systemVoiceSelect.value = p.systemVoice;
     }
+    state._pendingTTS = null;
+}
     function getDeviceType() {
         const ua = navigator.userAgent;
         if (/iPad/.test(ua)) return 'iPad';
@@ -742,6 +763,9 @@ document.addEventListener('DOMContentLoaded', () => {
     ==================================================== */
     elements.ttsToggle.addEventListener('change', () => {
         const online = elements.ttsToggle.checked;
+        elements.systemVoiceSelect.addEventListener('change', saveData);
+        elements.onlineVoiceSelect.addEventListener('change', saveData);
+        elements.ttsToggle.addEventListener('change', saveData);
         elements.lblSystem.classList.toggle('active', !online);
         elements.lblOnline.classList.toggle('active', online);
         elements.systemVoiceSub.style.display = online ? 'none' : 'flex';
@@ -750,27 +774,34 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function loadSystemVoices() {
-        const voices = window.speechSynthesis.getVoices();
-        if (!voices || voices.length === 0) return;
-        const enVoices = voices.filter(v => v.lang.startsWith('en'));
-        if (enVoices.length === 0) return;
-        enVoices.sort((a, b) => {
-            const score = v => v.lang === 'en-US' ? 0 : v.lang === 'en-GB' ? 1 : 2;
-            return score(a) - score(b) || a.name.localeCompare(b.name);
-        });
-        elements.systemVoiceSelect.innerHTML = '';
-        enVoices.forEach(v => {
-            const opt = document.createElement('option');
-            opt.value = v.name;
-            opt.textContent = v.name + ' (' + v.lang + ')';
-            elements.systemVoiceSelect.appendChild(opt);
-        });
+    const voices = window.speechSynthesis.getVoices();
+    if (!voices || voices.length === 0) return;
+    const enVoices = voices.filter(v => v.lang.startsWith('en'));
+    if (enVoices.length === 0) return;
+    enVoices.sort((a, b) => {
+        const score = v => v.lang === 'en-US' ? 0 : v.lang === 'en-GB' ? 1 : 2;
+        return score(a) - score(b) || a.name.localeCompare(b.name);
+    });
+    elements.systemVoiceSelect.innerHTML = '';
+    enVoices.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v.name;
+        opt.textContent = v.name + ' (' + v.lang + ')';
+        elements.systemVoiceSelect.appendChild(opt);
+    });
+    // 优先恢复用户保存的音色，找不到时再回退到 preferred
+    const saved = localStorage.getItem('wordLearner_systemVoice');
+    if (saved && enVoices.find(v => v.name === saved)) {
+        elements.systemVoiceSelect.value = saved;
+    } else {
         const preferred = ['Ava', 'Samantha', 'Microsoft Aria', 'Google US English'];
         for (const name of preferred) {
             const found = enVoices.find(v => v.name.includes(name));
             if (found) { elements.systemVoiceSelect.value = found.name; break; }
         }
     }
+    applySavedTTS();  // 新增
+}
     window.speechSynthesis.onvoiceschanged = loadSystemVoices;
     loadSystemVoices();
 
@@ -930,20 +961,14 @@ document.addEventListener('DOMContentLoaded', () => {
      * 否则直接返回纯文本。
      */
     function cellToHtml(cell) {
-        if (!cell) return '';
-        // 富文本
-        if (cell.t === 's' && cell.v !== undefined && cell.r) {
-            // cell.r 是 XML 字符串，直接从原始 XML 解析富文本
-            // XLSX.js 把富文本存在 cell.v (纯文本) 和 (若有) shareString
-            // 我们用 XLSX.utils.format_cell 获取纯文本作为后备
-        }
-        // 检查 richText (SheetJS 在 cellStyles/cellRichText 模式下)
-        if (cell.r && typeof cell.r === 'string') {
-            return richXmlToHtml(cell.r);
-        }
-        // 普通文本
-        return escHtml(String(cell.v !== undefined ? cell.v : ''));
+    if (!cell) return '';
+    // SheetJS 在 cellStyles 模式下，cell.r 为 XML 字符串
+    if (cell.r && typeof cell.r === 'string') {
+        return richXmlToHtml(cell.r);
     }
+    // 普通文本
+    return escHtml(String(cell.v !== undefined ? cell.v : ''));
+}
 
     /**
      * 解析 SheetJS 存储的 XML richText 字符串，输出带 <b> 的 HTML。
@@ -969,19 +994,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function escHtml(str) {
-        // 先把已有的 HTML 实体还原为原始字符，再统一转义
-        // 这样可以避免 &quot; → &amp;quot; 的二次编码问题
-        var decoded = String(str)
-            .replace(/&quot;/g, '"')
-            .replace(/&apos;/g, "'")
-            .replace(/&lt;/g, '<')
-            .replace(/&gt;/g, '>')
-            .replace(/&amp;/g, '&');
-        return decoded
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;');
-    }
+    // 只做单向转义：原文中已经是实体的字符（&amp;）会变成 &amp;amp;
+    // 但 SheetJS 的 cell.v 是纯文本，不含 HTML 实体，所以原版"二次解码"是多余且危险的
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
 
     /**
      * 安全获取单元格的纯文本（用于搜索/过滤）
@@ -1013,7 +1034,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (titleCell) state.refBookTitle = cellText(titleCell).trim();
 
             // 第2行是表头，第3行起是数据（row index = 2 in 0-based，但sheet_to_json用range控制）
-            const range = XLSX.utils.decode_range(ws1['!ref'] || 'A1:F100');
+            const range = XLSX.utils.decode_range(ws1['!ref'] || 'A1:F10000');
             for (let r = 2; r <= range.e.r; r++) { // row 0=标题,1=表头,2起=数据
                 const numCell   = ws1[XLSX.utils.encode_cell({r: r, c: 0})];
                 const chunkCell = ws1[XLSX.utils.encode_cell({r: r, c: 1})];
@@ -1049,7 +1070,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const tc = ws2['E1'] || ws2['D1'] || ws2['A1'];
                 if (tc) state.refBookTitle = cellText(tc).trim();
             }
-            const range2 = XLSX.utils.decode_range(ws2['!ref'] || 'A1:G100');
+            const range2 = XLSX.utils.decode_range(ws2['!ref'] || 'A1:G10000');
             for (let r = 2; r <= range2.e.r; r++) {
                 const numCell   = ws2[XLSX.utils.encode_cell({r: r, c: 0})];
                 const wordCell  = ws2[XLSX.utils.encode_cell({r: r, c: 1})];
@@ -1084,7 +1105,7 @@ if (wb.SheetNames.length >= 3) {
     const titleCell3 = ws3['A1'] || ws3['C1'] || ws3['B1'];
     if (titleCell3) state.refSentencesTitle = cellText(titleCell3).trim();
 
-    const range3 = XLSX.utils.decode_range(ws3['!ref'] || 'A1:E100');
+    const range3 = XLSX.utils.decode_range(ws3['!ref'] || 'A1:E10000');
     for (let r = 2; r <= range3.e.r; r++) { // 第1行标题, 第2行表头, 第3行起数据
         const numCell  = ws3[XLSX.utils.encode_cell({r: r, c: 0})];
         const enCell   = ws3[XLSX.utils.encode_cell({r: r, c: 1})];
@@ -1235,7 +1256,8 @@ if (wb.SheetNames.length >= 3) {
         data.forEach((c, index) => {
             tableHtml += '<tr class="' + (index % 2 !== 0 ? 'even-row' : '') + '">';
             tableHtml += '<td class="col-num">' + escHtml(c.num) + '</td>';
-            tableHtml += '<td><span class="chunk-term">' + c.chunk + '</span><button class="speak-btn" data-speak="' + c.chunkTxt.replace(/"/g, '&quot;') + '" title="点击发音">🔊</button></td>';
+            // 使用 escHtml 完整转义，避免 & < > 等字符破坏属性
+            tableHtml += '<td><span class="chunk-term">' + c.chunk + '</span><button class="speak-btn" data-speak="' + escHtml(c.chunkTxt) + '" title="点击发音">🔊</button></td>';
             tableHtml += '<td class="chunk-cell-book ref-hideable">' + c.book + '</td>';
             tableHtml += '<td class="chunk-cell-en ref-hideable">' + c.en + '</td>';
             tableHtml += '<td class="chunk-cell-zh ref-hideable">' + c.zh + '</td>';
@@ -1388,15 +1410,16 @@ if (wb.SheetNames.length >= 3) {
 
     // 参考页内 tab 切换
     document.addEventListener('click', e => {
-        const refTabBtn = e.target.closest('.ref-tab-btn');
-        if (refTabBtn) {
-            state.currentRefTab = refTabBtn.dataset.refTab;
-            document.querySelectorAll('.ref-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.refTab === state.currentRefTab));
-            elements.refSearchInput.value = '';
-            renderReference('');
-            elements.refContentArea.scrollTop = 0;
-        }
-    });
+    const refTabBtn = e.target.closest('.ref-tab-btn');
+    if (refTabBtn) {
+        state.currentRefTab = refTabBtn.dataset.refTab;
+        document.querySelectorAll('.ref-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.refTab === state.currentRefTab));
+        elements.refSearchInput.value = '';
+        clearTimeout(refSearchTimer);  // 新增：清掉旧的 debounce
+        renderReference('');
+        elements.refContentArea.scrollTop = 0;
+    }
+});
 
     // 参考页搜索
     let refSearchTimer = null;
@@ -1784,13 +1807,13 @@ if (wb.SheetNames.length >= 3) {
             const items = document.querySelectorAll('#study-view .info-item');
             const hidden = Array.from(items).some(i => !i.classList.contains('visible'));
             items.forEach(i => hidden ? i.classList.add('visible') : i.classList.remove('visible'));
-            target.textContent = hidden ? '全部重置' : '当前全部显示';
+            // 与 displayWord() 中的文案保持一致：可见时显示"当前全部隐藏"，反之"当前全部显示"
+            target.textContent = hidden ? '当前全部隐藏' : '当前全部显示';
             return;
         }
         if (target.id === 'global-show-all-btn') { state.isGlobalShowAll = true; displayWord(); return; }
         if (target.id === 'global-default-btn')  { state.isGlobalShowAll = false; displayWord(); return; }
         if (target.id === 'toggle-audio-btn') { state.isAutoAudio = !state.isAutoAudio; updateAudioButtonState(); return; }
-        if (target.id === 'play-btn') { speak(state.studyList[state.currentWordIndex]?.english); return; }
 
         const res = target.dataset.result;
         if (res) {
