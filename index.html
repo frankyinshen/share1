@@ -1510,10 +1510,11 @@ if (wb.SheetNames.length >= 3) {
     /* ====================================================
        STUDY FLOW (原逻辑全保留)
     ==================================================== */
-    function highlightWordInSentence(sentence, word) {
+        function highlightWordInSentence(sentence, word) {
         if (!sentence || !word) return sentence;
+        const escapedSentence = escHtml(String(sentence)); // 先转义，防止例句中的 < > & 等字符被当作HTML解析
         const regex = new RegExp('\\b(' + word.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&') + ')\\b', 'gi');
-        return String(sentence).replace(regex, '<span class="highlight">$1</span>');
+        return escapedSentence.replace(regex, '<span class="highlight">$1</span>');
     }
 
     function displayWord() {
